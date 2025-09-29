@@ -1,29 +1,31 @@
-
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 const {
-  SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL,
-  ADMIN_EMAILS, BANK_DETAILS_TEXT
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_USER,
+  SMTP_PASS,
+  FROM_EMAIL,
+  ADMIN_EMAILS,
+  BANK_DETAILS_TEXT,
 } = process.env;
 
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
   port: Number(SMTP_PORT || 587),
-  secure: Number(SMTP_PORT) === 465,           
-  auth: { user: SMTP_USER, pass: SMTP_PASS }
+  secure: Number(SMTP_PORT) === 465,
+  auth: { user: SMTP_USER, pass: SMTP_PASS },
 });
+//test
 
-
-const TEAM = (ADMIN_EMAILS || '')
-  .split(',')
-  .map(s => s.trim())
+const TEAM = (ADMIN_EMAILS || "")
+  .split(",")
+  .map((s) => s.trim())
   .filter(Boolean);
 
-
 export function sendTeamEmail({ name, email, phone, subject, message }) {
-  
   const submissionTime = new Date().toLocaleString();
-  
+
   const htmlBody = `
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; background: #f5f7fa;">
       <!-- Header -->
@@ -53,7 +55,11 @@ export function sendTeamEmail({ name, email, phone, subject, message }) {
               </tr>
               <tr>
                 <td style="padding: 10px 0; font-weight: bold; color: #555;">Phone:</td>
-                <td style="padding: 10px 0;"><a href="tel:${phone || 'N/A'}" style="color: #2c5aa0; text-decoration: none;">${phone || 'Not provided'}</a></td>
+                <td style="padding: 10px 0;"><a href="tel:${
+                  phone || "N/A"
+                }" style="color: #2c5aa0; text-decoration: none;">${
+    phone || "Not provided"
+  }</a></td>
               </tr>
             </table>
           </div>
@@ -71,7 +77,7 @@ export function sendTeamEmail({ name, email, phone, subject, message }) {
         <div style="margin-bottom: 30px;">
           <h3 style="color: #1e3a5f; font-size: 20px; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 3px solid #ff9800;">💬 Message</h3>
           <div style="background: #fff8e1; padding: 20px; border-radius: 8px; border-left: 5px solid #ff9800; line-height: 1.6; color: #333;">
-            ${message.replace(/\n/g, '<br>')}
+            ${message.replace(/\n/g, "<br>")}
           </div>
         </div>
         
@@ -89,12 +95,16 @@ export function sendTeamEmail({ name, email, phone, subject, message }) {
              style="background: #2c5aa0; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 10px; font-weight: bold; box-shadow: 0 4px 6px rgba(44,90,160,0.3);">
             📧 Reply via Email
           </a>
-          ${phone ? `
+          ${
+            phone
+              ? `
           <a href="tel:${phone}" 
              style="background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 10px; font-weight: bold; box-shadow: 0 4px 6px rgba(40,167,69,0.3);">
             📞 Call Now
           </a>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
       </div>
       
@@ -105,7 +115,7 @@ export function sendTeamEmail({ name, email, phone, subject, message }) {
       </div>
     </div>
   `;
-  
+
   const textBody = `
 NEW CONTACT INQUIRY - Miima Surveying & Geomatics
 
@@ -115,7 +125,7 @@ Time: ${submissionTime}
 CONTACT INFORMATION:
 Name: ${name}
 Email: ${email}
-Phone: ${phone || 'Not provided'}
+Phone: ${phone || "Not provided"}
 
 INQUIRY SUBJECT:
 ${subject}
@@ -126,15 +136,14 @@ ${message}
 ---
 Website: msurveyingeomatics.com
   `;
-  
+
   return transporter.sendMail({
     from: `"Miima Survey & Geomatics" <${FROM_EMAIL || SMTP_USER}>`,
     to: TEAM,
     replyTo: `${name} <${email}>`,
     subject: `CONTACT: ${subject} – ${name}`,
     text: textBody,
-    html: htmlBody
-
+    html: htmlBody,
   });
 }
 
@@ -211,7 +220,7 @@ export function sendAckEmail({ to, name, subject }) {
       </div>
     </div>
   `;
-  
+
   const textBody = `
 Hi ${name},
 
@@ -235,21 +244,15 @@ With 40+ years of experience and university-level expertise, we're committed to 
 Licensed • Insured • Professional • Trusted
   `;
 
-  
-  
-  
-  
-  
   return transporter.sendMail({
     from: `"Miima Surveying & Geomatics" <${FROM_EMAIL || SMTP_USER}>`,
     to,
-    replyTo:  'dorcaskirwa97@gmail.com',
+    replyTo: "dorcaskirwa97@gmail.com",
     subject: `We received your message. Miima Surveying Geomatics`,
     text: textBody,
-    html: htmlBody
+    html: htmlBody,
   });
 }
-
 
 // // Sending bank details to customer
 // export function sendBankDetailsToCustomer({ to, name, amount, invoice }) {
@@ -284,7 +287,6 @@ Licensed • Insured • Professional • Trusted
 //     text, html
 //   });
 // }
-
 
 // export function notifyTeamBankDetailsSent({ email, amount, invoice }) {
 //   const amt = Number(amount || 0).toFixed(2);

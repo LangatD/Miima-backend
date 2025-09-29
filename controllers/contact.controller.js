@@ -6,7 +6,7 @@ const ContactSchema = z.object({
   name: z.string().min(2).max(60),
   email: z.string().email(),
   phone: z.string().optional(),
-  subject: z.string().min(2).max(100),
+  //subject: z.string().min(2).max(100),
   message: z.string().min(10).max(2000),
   hp: z.string().max(0).optional().default('') 
 })
@@ -20,11 +20,11 @@ export async function postContact(req, res) {
       errors: parsed.error.flatten()
     });
   }
-  const { name, email, phone, subject, message } = parsed.data;
+  const { name, email, phone,  message } = parsed.data;
 
   try {
-    await sendTeamEmail({ name, email, phone, subject, message });
-    await sendAckEmail({ to: email, name, subject });
+    await sendTeamEmail({ name, email, phone, message });
+    await sendAckEmail({ to: email, name });
 
     //  reference code
     const ref = 'MSG-' + new Date().toISOString().slice(0,10).replace(/-/g,'') 

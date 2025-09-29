@@ -42510,6 +42510,245 @@ var require_utils5 = __commonJS({
   }
 });
 
+// node_modules/punycode/punycode.js
+var require_punycode = __commonJS({
+  "node_modules/punycode/punycode.js"(exports, module) {
+    "use strict";
+    var maxInt = 2147483647;
+    var base = 36;
+    var tMin = 1;
+    var tMax = 26;
+    var skew = 38;
+    var damp = 700;
+    var initialBias = 72;
+    var initialN = 128;
+    var delimiter = "-";
+    var regexPunycode = /^xn--/;
+    var regexNonASCII = /[^\0-\x7F]/;
+    var regexSeparators = /[\x2E\u3002\uFF0E\uFF61]/g;
+    var errors = {
+      "overflow": "Overflow: input needs wider integers to process",
+      "not-basic": "Illegal input >= 0x80 (not a basic code point)",
+      "invalid-input": "Invalid input"
+    };
+    var baseMinusTMin = base - tMin;
+    var floor = Math.floor;
+    var stringFromCharCode = String.fromCharCode;
+    function error45(type) {
+      throw new RangeError(errors[type]);
+    }
+    function map2(array2, callback) {
+      const result = [];
+      let length = array2.length;
+      while (length--) {
+        result[length] = callback(array2[length]);
+      }
+      return result;
+    }
+    function mapDomain(domain2, callback) {
+      const parts = domain2.split("@");
+      let result = "";
+      if (parts.length > 1) {
+        result = parts[0] + "@";
+        domain2 = parts[1];
+      }
+      domain2 = domain2.replace(regexSeparators, ".");
+      const labels = domain2.split(".");
+      const encoded = map2(labels, callback).join(".");
+      return result + encoded;
+    }
+    function ucs2decode(string4) {
+      const output = [];
+      let counter = 0;
+      const length = string4.length;
+      while (counter < length) {
+        const value = string4.charCodeAt(counter++);
+        if (value >= 55296 && value <= 56319 && counter < length) {
+          const extra = string4.charCodeAt(counter++);
+          if ((extra & 64512) == 56320) {
+            output.push(((value & 1023) << 10) + (extra & 1023) + 65536);
+          } else {
+            output.push(value);
+            counter--;
+          }
+        } else {
+          output.push(value);
+        }
+      }
+      return output;
+    }
+    var ucs2encode = (codePoints) => String.fromCodePoint(...codePoints);
+    var basicToDigit = function(codePoint) {
+      if (codePoint >= 48 && codePoint < 58) {
+        return 26 + (codePoint - 48);
+      }
+      if (codePoint >= 65 && codePoint < 91) {
+        return codePoint - 65;
+      }
+      if (codePoint >= 97 && codePoint < 123) {
+        return codePoint - 97;
+      }
+      return base;
+    };
+    var digitToBasic = function(digit, flag) {
+      return digit + 22 + 75 * (digit < 26) - ((flag != 0) << 5);
+    };
+    var adapt = function(delta, numPoints, firstTime) {
+      let k = 0;
+      delta = firstTime ? floor(delta / damp) : delta >> 1;
+      delta += floor(delta / numPoints);
+      for (; delta > baseMinusTMin * tMax >> 1; k += base) {
+        delta = floor(delta / baseMinusTMin);
+      }
+      return floor(k + (baseMinusTMin + 1) * delta / (delta + skew));
+    };
+    var decode3 = function(input) {
+      const output = [];
+      const inputLength = input.length;
+      let i = 0;
+      let n = initialN;
+      let bias = initialBias;
+      let basic = input.lastIndexOf(delimiter);
+      if (basic < 0) {
+        basic = 0;
+      }
+      for (let j = 0; j < basic; ++j) {
+        if (input.charCodeAt(j) >= 128) {
+          error45("not-basic");
+        }
+        output.push(input.charCodeAt(j));
+      }
+      for (let index = basic > 0 ? basic + 1 : 0; index < inputLength; ) {
+        const oldi = i;
+        for (let w = 1, k = base; ; k += base) {
+          if (index >= inputLength) {
+            error45("invalid-input");
+          }
+          const digit = basicToDigit(input.charCodeAt(index++));
+          if (digit >= base) {
+            error45("invalid-input");
+          }
+          if (digit > floor((maxInt - i) / w)) {
+            error45("overflow");
+          }
+          i += digit * w;
+          const t = k <= bias ? tMin : k >= bias + tMax ? tMax : k - bias;
+          if (digit < t) {
+            break;
+          }
+          const baseMinusT = base - t;
+          if (w > floor(maxInt / baseMinusT)) {
+            error45("overflow");
+          }
+          w *= baseMinusT;
+        }
+        const out = output.length + 1;
+        bias = adapt(i - oldi, out, oldi == 0);
+        if (floor(i / out) > maxInt - n) {
+          error45("overflow");
+        }
+        n += floor(i / out);
+        i %= out;
+        output.splice(i++, 0, n);
+      }
+      return String.fromCodePoint(...output);
+    };
+    var encode3 = function(input) {
+      const output = [];
+      input = ucs2decode(input);
+      const inputLength = input.length;
+      let n = initialN;
+      let delta = 0;
+      let bias = initialBias;
+      for (const currentValue of input) {
+        if (currentValue < 128) {
+          output.push(stringFromCharCode(currentValue));
+        }
+      }
+      const basicLength = output.length;
+      let handledCPCount = basicLength;
+      if (basicLength) {
+        output.push(delimiter);
+      }
+      while (handledCPCount < inputLength) {
+        let m = maxInt;
+        for (const currentValue of input) {
+          if (currentValue >= n && currentValue < m) {
+            m = currentValue;
+          }
+        }
+        const handledCPCountPlusOne = handledCPCount + 1;
+        if (m - n > floor((maxInt - delta) / handledCPCountPlusOne)) {
+          error45("overflow");
+        }
+        delta += (m - n) * handledCPCountPlusOne;
+        n = m;
+        for (const currentValue of input) {
+          if (currentValue < n && ++delta > maxInt) {
+            error45("overflow");
+          }
+          if (currentValue === n) {
+            let q = delta;
+            for (let k = base; ; k += base) {
+              const t = k <= bias ? tMin : k >= bias + tMax ? tMax : k - bias;
+              if (q < t) {
+                break;
+              }
+              const qMinusT = q - t;
+              const baseMinusT = base - t;
+              output.push(
+                stringFromCharCode(digitToBasic(t + qMinusT % baseMinusT, 0))
+              );
+              q = floor(qMinusT / baseMinusT);
+            }
+            output.push(stringFromCharCode(digitToBasic(q, 0)));
+            bias = adapt(delta, handledCPCountPlusOne, handledCPCount === basicLength);
+            delta = 0;
+            ++handledCPCount;
+          }
+        }
+        ++delta;
+        ++n;
+      }
+      return output.join("");
+    };
+    var toUnicode = function(input) {
+      return mapDomain(input, function(string4) {
+        return regexPunycode.test(string4) ? decode3(string4.slice(4).toLowerCase()) : string4;
+      });
+    };
+    var toASCII = function(input) {
+      return mapDomain(input, function(string4) {
+        return regexNonASCII.test(string4) ? "xn--" + encode3(string4) : string4;
+      });
+    };
+    var punycode = {
+      /**
+       * A string representing the current Punycode.js version number.
+       * @memberOf punycode
+       * @type String
+       */
+      "version": "2.3.1",
+      /**
+       * An object of methods to convert from JavaScript's internal character
+       * representation (UCS-2) to Unicode code points, and back.
+       * @see <https://mathiasbynens.be/notes/javascript-encoding>
+       * @memberOf punycode
+       * @type Object
+       */
+      "ucs2": {
+        "decode": ucs2decode,
+        "encode": ucs2encode
+      },
+      "decode": decode3,
+      "encode": encode3,
+      "toASCII": toASCII,
+      "toUnicode": toUnicode
+    };
+    module.exports = punycode;
+  }
+});
+
 // node_modules/tr46/lib/regexes.js
 var require_regexes = __commonJS({
   "node_modules/tr46/lib/regexes.js"(exports, module) {
@@ -42568,7 +42807,7 @@ var require_statusMapping = __commonJS({
 var require_tr46 = __commonJS({
   "node_modules/tr46/index.js"(exports, module) {
     "use strict";
-    var punycode = __require("punycode/");
+    var punycode = require_punycode();
     var regexes = require_regexes();
     var mappingTable = require_mappingTable();
     var { STATUS_MAPPING } = require_statusMapping();
@@ -95590,7 +95829,7 @@ var require_mime_types2 = __commonJS({
 });
 
 // node_modules/nodemailer/lib/punycode/index.js
-var require_punycode = __commonJS({
+var require_punycode2 = __commonJS({
   "node_modules/nodemailer/lib/punycode/index.js"(exports, module) {
     "use strict";
     var maxInt = 2147483647;
@@ -96958,7 +97197,7 @@ var require_mime_node = __commonJS({
     "use strict";
     var crypto2 = __require("crypto");
     var fs = __require("fs");
-    var punycode = require_punycode();
+    var punycode = require_punycode2();
     var PassThrough = __require("stream").PassThrough;
     var shared = require_shared2();
     var mimeFuncs = require_mime_funcs();
@@ -98641,7 +98880,7 @@ var require_relaxed_body = __commonJS({
 var require_sign2 = __commonJS({
   "node_modules/nodemailer/lib/dkim/sign.js"(exports, module) {
     "use strict";
-    var punycode = require_punycode();
+    var punycode = require_punycode2();
     var mimeFuncs = require_mime_funcs();
     var crypto2 = __require("crypto");
     module.exports = (headers, hashAlgo, bodyHash, options) => {
